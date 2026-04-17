@@ -1,0 +1,20 @@
+# Python specific ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+venv/
+env/
+.venv/
+
+# AI-generated specific inputs & artifacts
+LEARNING_GUIDE.md
+todo.txt
+
+# OS generated paths
+.DS_Store
+
+# Large model outputs (optional, normally models aren't committed but for portfolio we can keep it, so commenting it out)
+# outputs/*.pkl
