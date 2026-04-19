@@ -11,11 +11,11 @@ import joblib
 
 def main():
     """
-    Trains a Random Forest classifier to predict customer churn.
-    Generates SHAP explainability plots and creates churn risk segments.
+    Trains a Random Forest classifier to predict Employee Attrition.
+    Generates SHAP explainability plots and creates flight risk segments.
     """
     try:
-        data_path = 'outputs/customer_data.csv'
+        data_path = 'outputs/employee_data.csv'
         if not os.path.exists(data_path):
             raise FileNotFoundError(f"{data_path} not found. Please run generate_data.py first.")
             
@@ -24,30 +24,27 @@ def main():
         # Identify categorical columns to encode
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         
-        # Ensure customer_id is not treated as a feature to encode if it's there
-        if 'customer_id' in categorical_cols:
-            categorical_cols.remove('customer_id')
+        if 'employee_id' in categorical_cols:
+            categorical_cols.remove('employee_id')
+        if 'cohort' in categorical_cols:
+            categorical_cols.remove('cohort')
             
-        # Store label encoders
         encoders = {}
         for col in categorical_cols:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col].astype(str))
             encoders[col] = le
             
-        # Optional: Save encoders if needed later
         joblib.dump(encoders, 'outputs/label_encoders.pkl')
 
         # Predictors and Target
-        X = df.drop(columns=['customer_id', 'churn'])
-        y = df['churn']
+        X = df.drop(columns=['employee_id', 'attrition', 'cohort', 'hire_year'], errors='ignore')
+        y = df['attrition']
         
-        # Train/test split
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.20, stratify=y, random_state=42
         )
         
-        # Train Random Forest
         rf = RandomForestClassifier(
             n_estimators=200, 
             max_depth=10, 
@@ -56,11 +53,9 @@ def main():
         )
         rf.fit(X_train, y_train)
         
-        # Predictions
         y_pred = rf.predict(X_test)
         y_pred_proba = rf.predict_proba(X_test)[:, 1]
         
-        # Metrics
         print("Classification Report:")
         print(classification_report(y_test, y_pred))
         
@@ -72,74 +67,54 @@ def main():
         print(f"ROC-AUC Score: {roc_auc:.4f}")
         print(f"Accuracy Score: {acc:.4f}")
         
-        if acc < 0.80:
-            print("Warning: Accuracy is below 80%.")
-            
         # SHAP Explainability
         explainer = shap.TreeExplainer(rf)
-        
-        # Calculate SHAP values for test set (we sample to not be too slow, or just use all X_test if small)
-        # 1000 rows in X_test is fast enough
         shap_values = explainer.shap_values(X_test)
         
-        # Note: shap.TreeExplainer returns a list of shap values for random forest classifier in shap <= 0.41, 
-        # but in newer versions it returns an Explanation object or an array. 
-        # For a binary classifier, it often returns a list [shap_values_class_0, shap_values_class_1] or an array of shape (n, f, 2).
-        # We will use the SHAP values for the positive class (class 1, i.e., Churn)
         if isinstance(shap_values, list):
-            shap_values_churn = shap_values[1]
+            shap_values_attrition = shap_values[1]
         elif len(shap_values.shape) == 3:
-            shap_values_churn = shap_values[:, :, 1]
+            shap_values_attrition = shap_values[:, :, 1]
         else:
-            shap_values_churn = shap_values
+            shap_values_attrition = shap_values
             
-        # Bar plot
         plt.figure()
-        shap.summary_plot(shap_values_churn, X_test, plot_type="bar", show=False)
+        shap.summary_plot(shap_values_attrition, X_test, plot_type="bar", show=False)
         plt.title('SHAP Feature Importance (Bar)')
         plt.tight_layout()
         plt.savefig('outputs/shap_summary.png')
         plt.close()
         
-        # Beeswarm plot (using summary_plot without plot_type which defaults to beeswarm / dot)
         plt.figure()
-        shap.summary_plot(shap_values_churn, X_test, show=False)
+        shap.summary_plot(shap_values_attrition, X_test, show=False)
         plt.title('SHAP Feature Impact (Beeswarm)')
         plt.tight_layout()
         plt.savefig('outputs/shap_beeswarm.png')
         plt.close()
 
-        # Churn Risk Segmentation
-        # First, reconstruct test dataframe to keep customer_id
+        # Flight Risk Segmentation
         test_indices = X_test.index
-        df_test = df.loc[test_indices].copy()
-        
-        # If we need the original categoricals, we can decode them back, or just save encoded.
-        # The dash app requires 'contract_type' and 'age_group'. So better to merge probas to original loaded data!
-        # Re-read the CSV to get original textual data
         df_original = pd.read_csv(data_path)
         df_output = df_original.loc[test_indices].copy()
         
         df_output['prediction'] = y_pred
-        df_output['churn_probability'] = y_pred_proba
+        df_output['attrition_probability'] = y_pred_proba
         
         def assign_risk(pr):
             if pr < 0.30:
                 return 'Low'
-            elif pr <= 0.60:
+            elif pr <= 0.50:
                 return 'Medium'
             else:
                 return 'High'
                 
-        df_output['risk_segment'] = df_output['churn_probability'].apply(assign_risk)
+        df_output['flight_risk_segment'] = df_output['attrition_probability'].apply(assign_risk)
         
-        df_output.to_csv('outputs/churn_predictions.csv', index=False)
-        print(f"Risk segmentation saved to outputs/churn_predictions.csv")
+        df_output.to_csv('outputs/flight_risk.csv', index=False)
+        print(f"Risk segmentation saved to outputs/flight_risk.csv")
 
-        # Save model
-        joblib.dump(rf, 'outputs/churn_model.pkl')
+        joblib.dump(rf, 'outputs/attrition_model.pkl')
         print("✓ Model training complete.")
-        print("✓ train_model.py completed successfully.")
 
     except Exception as e:
         print(f"Error in train_model.py: {e}")

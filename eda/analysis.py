@@ -7,43 +7,42 @@ from lifelines import KaplanMeierFitter
 
 def main():
     """
-    Performs Exploratory Data Analysis (EDA) on the customer data.
+    Performs Exploratory Data Analysis (EDA) on the HR datset.
     Generates and saves cohort analysis, correlation matrix, survival curves, and distribution plots.
     """
     try:
-        data_path = 'outputs/customer_data.csv'
+        data_path = 'outputs/employee_data.csv'
         if not os.path.exists(data_path):
             raise FileNotFoundError(f"{data_path} not found. Please run generate_data.py first.")
             
         df = pd.read_csv(data_path)
         
         # A) COHORT ANALYSIS
-        # Group by cohort and tenure buckets to calculate churn rate
-        # We can use pd.qcut or pd.cut to bucket tenures
-        df['tenure_bucket'] = pd.cut(df['tenure_months'], bins=[0, 12, 24, 36, 48, 60, 72], 
-                                     labels=['0-12', '13-24', '25-36', '37-48', '49-60', '61-72'])
+        # Group by cohort and YearsAtCompany buckets to calculate attrition rate
+        df['tenure_bucket'] = pd.cut(df['YearsAtCompany'], bins=[-1, 2, 5, 10, 20, 40], 
+                                     labels=['0-2', '3-5', '6-10', '11-20', '21+'])
         
-        cohort_data = df.groupby(['cohort', 'tenure_bucket'])['churn'].mean().unstack()
+        cohort_data = df.groupby(['cohort', 'tenure_bucket'], observed=True)['attrition'].mean().unstack()
         
         plt.figure(figsize=(12, 8))
-        sns.heatmap(cohort_data, annot=True, fmt=".2f", cmap="YlGnBu")
-        plt.title('Cohort Analysis: Churn Rate by Cohort and Tenure')
-        plt.ylabel('Cohort (Signup Year-Month)')
-        plt.xlabel('Tenure Bucket (Months)')
+        sns.heatmap(cohort_data, annot=True, fmt=".2f", cmap="YlOrRd")
+        plt.title('Cohort Analysis: Attrition Rate by Hire Year and Tenure')
+        plt.ylabel('Cohort (Hire Year)')
+        plt.xlabel('Tenure Bucket (Years)')
         plt.tight_layout()
         plt.savefig('outputs/cohort_heatmap.png')
         plt.close()
 
-        # B) CHURN CORRELATION MATRIX
-        # Drop columns like customer_id, dates etc before encoding
-        df_corr = df.drop(columns=['customer_id', 'cohort', 'tenure_bucket'])
+        # B) CORRELATION MATRIX
+        # Drop IDs/cohorts
+        df_corr = df.drop(columns=['employee_id', 'cohort', 'tenure_bucket', 'hire_year'], errors='ignore')
         df_corr = pd.get_dummies(df_corr, drop_first=True)
         
         corr_matrix = df_corr.corr()
         
-        plt.figure(figsize=(16, 12))
-        sns.heatmap(corr_matrix, annot=False, cmap="coolwarm", center=0)
-        plt.title('Churn Correlation Matrix')
+        plt.figure(figsize=(24, 20))
+        sns.heatmap(corr_matrix, cmap="coolwarm", center=0)
+        plt.title('Feature Correlation Matrix')
         plt.tight_layout()
         plt.savefig('outputs/correlation_matrix.png')
         plt.close()
@@ -52,37 +51,35 @@ def main():
         plt.figure(figsize=(10, 6))
         kmf = KaplanMeierFitter()
         
-        for contract in df['contract_type'].unique():
-            mask = df['contract_type'] == contract
-            # 'tenure_months' is the duration, 'churn' is the event observed
-            kmf.fit(df[mask]['tenure_months'], event_observed=df[mask]['churn'], label=contract)
+        for dept in df['Department'].unique():
+            mask = df['Department'] == dept
+            kmf.fit(df[mask]['YearsAtCompany'], event_observed=df[mask]['attrition'], label=dept)
             kmf.plot_survival_function()
             
-        plt.title('Survival Analysis by Contract Type')
-        plt.xlabel('Tenure (Months)')
-        plt.ylabel('Survival Probability')
+        plt.title('Employee Retention Survival Analysis by Department')
+        plt.xlabel('Years At Company')
+        plt.ylabel('Retention Probability')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig('outputs/survival_curves.png')
         plt.close()
 
         # D) DISTRIBUTION PLOTS
-        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        fig, axes = plt.subplots(1, 3, figsize=(20, 6))
         
-        sns.barplot(data=df, x='contract_type', y='churn', ax=axes[0])
-        axes[0].set_title('Churn Rate by Contract Type')
+        sns.barplot(data=df, x='Department', y='attrition', ax=axes[0], palette='viridis')
+        axes[0].set_title('Attrition Rate by Department')
         axes[0].tick_params(axis='x', rotation=45)
         
-        sns.barplot(data=df, x='age_group', y='churn', ax=axes[1])
-        axes[1].set_title('Churn Rate by Age Group')
-        axes[1].tick_params(axis='x', rotation=45)
+        sns.barplot(data=df, x='JobRole', y='attrition', ax=axes[1], palette='viridis')
+        axes[1].set_title('Attrition Rate by Job Role')
+        axes[1].tick_params(axis='x', rotation=80)
         
-        sns.barplot(data=df, x='payment_method', y='churn', ax=axes[2])
-        axes[2].set_title('Churn Rate by Payment Method')
-        axes[2].tick_params(axis='x', rotation=45)
+        sns.barplot(data=df, x='MaritalStatus', y='attrition', ax=axes[2], palette='viridis')
+        axes[2].set_title('Attrition Rate by Marital Status')
         
         plt.tight_layout()
-        plt.savefig('outputs/churn_by_category.png')
+        plt.savefig('outputs/attrition_by_category.png')
         plt.close()
 
         print("EDA complete. 4 plots saved to outputs/")

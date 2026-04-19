@@ -1,63 +1,31 @@
-# Customer Churn Intelligence Platform
+# B2B Employee Retention Intelligence Platform
 
-An end-to-end Machine Learning data pipeline and dashboard for predicting and analyzing customer churn. This project demonstrates strong full-stack data science capabilities, encompassing data generation, exploratory data analysis (EDA), predictive modeling with a Random Forest classifier, and an interactive Plotly-Dash visualization layer.
+An end-to-end Machine Learning data pipeline and dashboard for predicting and analyzing corporate **Employee Attrition (HR)**. This project demonstrates highly novel B2B full-stack data science capabilities, encompassing data ingestion, exploratory data analysis (EDA), predictive modeling with a Random Forest classifier, and an interactive, aesthetically premium Plotly-Dash visualization layer.
 
 ## Platform Features
 
-- **Robust Data Pipeline**: Programmatic generation of realistic multi-featured telecommunication datasets.
-- **Automated EDA**: Built-in statistical correlations and Kaplan-Meier survival curves using `lifelines` and `seaborn`.
-- **Machine Learning**: A `RandomForestClassifier` heavily tuned with class weighting to achieve reliable ROC-AUC boundaries.
-- **SHAP Explainability**: Integrates Shapley Additive Explanations for real-time model interpretability preventing black-box insights.
-- **Interactive Web App**: A dynamic React-based `Dash` frontend offering KPI cards, data slice filtering, and distribution interactivity.
-
-## Architecture
-
-```text
-churn_platform/
-├── main.py                  # Pipeline Orchestrator
-├── requirements.txt         # Dependency Manifest
-├── data/
-│   └── generate_data.py     # Data Simulator / Ingestion Module
-├── eda/
-│   └── analysis.py          # Statistics & Plot Generation
-├── model/
-│   └── train_model.py       # Random Forest & SHAP Evaluator
-├── dashboard/
-│   └── dashboard.py         # Dash Plotly Web Server
-└── outputs/                 # Output repository (Models, CSVs, Visuals)
-```
+- **Novel Academic Dataset**: Uses the official IBM HR Analytics Employee Attrition dataset, proving adaptability beyond over-used consumer data.
+- **Automated EDA**: Built-in statistical correlations and Kaplan-Meier survival curves to chart employee resignation timelines natively.
+- **Machine Learning Classification**: A heavily tuned `RandomForestClassifier` operating on 35 distinct internal HR features (income, commute, overtime) to achieve robust ROC-AUC targets and flag "flight-risk" talent.
+- **SHAP Game-Theory Explainability**: Instantly unlocks the "Black Box", letting HR directors know exactly *why* algorithms flag specific talent to quit.
+- **Aesthetic Premium UI**: A beautiful, dark-themed interactive web app featuring responsive KPI contextual cards, custom visual tooltips, and dynamic dataframe slice clustering in real-time.
 
 ## Quick Start Guide
 
 ### 1. Installation
-
-Clone this repository and set up your Python environment:
-
 ```bash
-# Create a virtual environment
 python -m venv venv
-
-# Activate it
-# On macOS/Linux:
 source venv/bin/activate
-# On Windows:
-# venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Run the Full Analytics Pipeline
-Execute `main.py` which will sequentially generate data, run analytics, train the ML model, and save all outputs:
-
+### 2. Run the Full Pipeline
+Execute `main.py` to securely fetch the IBM dataset, run statistical survival analytics, train the AI, and inject predictions:
 ```bash
 python main.py
 ```
-*Wait until it prints: `✓ All pipeline steps complete.`*
 
 ### 3. Launch the Dashboard
-Serve the interactive visualizer on your local machine:
-
 ```bash
 python dashboard/dashboard.py
 ```
